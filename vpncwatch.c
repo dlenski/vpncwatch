@@ -66,6 +66,7 @@ void show_usage(char *prog) {
     printf("    -p PORT    TCP port number to test on HOST.\n");
     printf("    -i SECS    Interval in seconds between VPN host check ");
     printf("(default: 3600).\n");
+    printf("    -F         Run in the foreground.\n");
     printf("    -?         Show this screen.\n");
     printf("    -V         Show version.\n\n");
     printf("Examples:\n");
@@ -97,6 +98,7 @@ int main(int argc, char **argv) {
     pid_t cmdpid = 0;
     char *chkhost = NULL;
     char *chkport = NULL;
+    unsigned int foreground = 0;
     unsigned int chkinterval = 3600;
     struct timeval tv;
 
@@ -106,7 +108,7 @@ int main(int argc, char **argv) {
         return EXIT_FAILURE;
     }
 
-    while ((c = getopt(argc, argv, "c:p:i:?V")) != -1) {
+    while ((c = getopt(argc, argv, "c:p:i:F?V")) != -1) {
         switch (c) {
             case 'c':
                 chkhost = strdup(optarg);
@@ -140,6 +142,9 @@ int main(int argc, char **argv) {
             case '?':
                 show_usage(argv[0]);
                 return EXIT_SUCCESS;
+            case 'F':
+                foreground = 1;
+                break;
             case 'V':
                 show_version(argv[0]);
                 return EXIT_SUCCESS;
@@ -183,10 +188,12 @@ int main(int argc, char **argv) {
 
     syslog(LOG_ERR, "cmdpid: |%d|", cmdpid);
 
-    /* run in the background */
-    if (daemon(0, 0) == -1) {
+    if (foreground == 0) {
+      /* run in the background */
+      if (daemon(0, 0) == -1) {
         syslog(LOG_ERR, "daemon failure: %s", strerror(errno));
         return EXIT_FAILURE;
+      }
     }
 
     /* install our signal handler */
