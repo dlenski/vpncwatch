@@ -1,3 +1,7 @@
 language: c
 install: make clean
 script: make
+addons:
+  artifacts:
+    paths:
+    - vpncwatch
