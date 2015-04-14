@@ -56,20 +56,25 @@ int is_network_up(char *chkhost, char *chkport) {
     for (rp = result; rp != NULL; rp = rp->ai_next) {
         sfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
 
-        if (sfd == -1)
+        if (sfd == -1) {
             continue;
+        }
 
-        if (connect(sfd, rp->ai_addr, rp->ai_addrlen) != -1)
-            break;                  /* Success */
+        if (connect(sfd, rp->ai_addr, rp->ai_addrlen) == -1) {
+            close(sfd);
+            continue;
+        }
 
-        close(sfd);
+        break; /* Success */
     }
 
-    freeaddrinfo(result);           /* No longer needed */
     if (rp == NULL) {               /* No address succeeded */
         syslog(LOG_ERR, "Could not connect");
         return 0;
     }
+
+    freeaddrinfo(result);           /* No longer needed */
+    close(sfd);
 
     return 1;
 }
