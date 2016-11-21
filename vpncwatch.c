@@ -67,6 +67,7 @@ void show_usage(char *prog) {
     printf("    -i SECS    Interval in seconds between VPN host check ");
     printf("(default: 3600).\n");
     printf("    -F         Run in the foreground.\n");
+    printf("    -M         Allow multiple concurrent instances of executable.\n");
     printf("    -?         Show this screen.\n");
     printf("    -V         Show version.\n\n");
     printf("Examples:\n");
@@ -100,7 +101,7 @@ int main(int argc, char **argv) {
     pid_t cmdpid = 0;
     char *chkhost = NULL;
     char *chkport = NULL;
-    unsigned int foreground = 0;
+    unsigned int foreground = 0, multiple = 0;
     unsigned int chkinterval = 3600;
     struct timeval tv;
 
@@ -110,7 +111,7 @@ int main(int argc, char **argv) {
         return EXIT_FAILURE;
     }
 
-    while ((c = getopt(argc, argv, "c:p:i:F?V")) != -1) {
+    while ((c = getopt(argc, argv, "c:p:i:FM?V")) != -1) {
         switch (c) {
             case 'c':
                 chkhost = strdup(optarg);
@@ -150,6 +151,9 @@ int main(int argc, char **argv) {
             case 'V':
                 show_version(argv[0]);
                 return EXIT_SUCCESS;
+            case 'M':
+                multiple = 1;
+                break;
             default:
                 show_usage(argv[0]);
                 return EXIT_FAILURE;
@@ -178,8 +182,12 @@ int main(int argc, char **argv) {
 
     /* see if we are already running */
     if ((cmdpid = pidof(cmd)) != 0) {
-        syslog(LOG_ERR, "%s already running (%d)", cmd, cmdpid);
-        return EXIT_FAILURE;
+        if (multiple) {
+            syslog(LOG_INFO, "%s already running (%d), starting another instance", cmd, cmdpid);
+        } else {
+            syslog(LOG_ERR, "%s already running (%d), exiting", cmd, cmdpid);
+            return EXIT_FAILURE;
+        }
     }
 
     /* start the command */
